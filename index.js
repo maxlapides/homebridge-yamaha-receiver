@@ -27,6 +27,7 @@ class YamahaReceiver {
 			this.statePollingInterval = 3
 		this.debug = config.debug || false
 		this.persistPath = path.join(this.api.user.persistPath(), '/../yamaha-receiver-persist')
+
 		
 		// define debug method to output debug logs when enabled in the config
 		this.log.easyDebug = (...content) => {
@@ -42,5 +43,10 @@ class YamahaReceiver {
 
 		this.api.on('didFinishLaunching', AVR.init.bind(this))
 
+	}
+
+	configureAccessory(accessory) {
+		this.log.easyDebug(`Found Cached Accessory: ${accessory.displayName} (${accessory.context.deviceId}) `)
+		// this.accessories.push(accessory)
 	}
 }
