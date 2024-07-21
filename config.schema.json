@@ -22,13 +22,6 @@
         "default": false,
         "required": false
       },
-      "party_switch": {
-        "title": "Enable Party Mode Switch",
-        "description": "When checked, the plugin will create a Party Mode switch",
-        "type": "boolean",
-        "default": false,
-        "required": false
-      },
       "receivers": {
         "type": "array",
         "required": false,
@@ -45,6 +38,13 @@
               "title": "IP Address (IPv4)",
               "type": "string",
               "required": true
+            },
+            "partySwitch": {
+              "title": "Enable Party Mode Switch",
+              "description": "Add a switch to control party mode",
+              "type": "boolean",
+              "default": false,
+              "required": false
             },
             "volumeAccessory": {
               "title": "External Volume Accessory",
@@ -158,9 +158,6 @@
       "key": "debug"
     },
     {
-      "key": "party_switch"
-    },
-    {
       "key": "receivers",
       "type": "array",
       "title": "Audio Receivers",
@@ -176,6 +173,7 @@
           "items": [
             "receivers[].name",
             "receivers[].ip",
+            "receivers[].partySwitch",
             "receivers[].volumeAccessory",
             "receivers[].minVolume",
             "receivers[].maxVolume",
