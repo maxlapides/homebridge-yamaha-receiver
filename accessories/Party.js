@@ -1,29 +1,24 @@
-const Yamaha = require('yamaha-nodejs');
+let Characteristic, Service;
 
-class YamahaParty {
-  constructor(log, config, name, yamaha, sysConfig) {
-    this.log = log;
+class Party {
+  constructor(avr, platform, config) {
+    Service = platform.api.hap.Service;
+    Characteristic = platform.api.hap.Characteristic;
+
+    this.log = platform.log;
     this.config = config;
-    this.yamaha = yamaha;
-    this.sysConfig = sysConfig;
+    this.yamaha = avr;
+    this.sysConfig = avr.sysConfig;
 
-    this.nameSuffix = config["name_suffix"] || " Party Mode";
-    this.zone = config["zone"] || 1;
     this.name = "Party Mode";
-    this.serviceName = name;
-    this.setMainInputTo = config["setMainInputTo"];
-    this.playVolume = this.config["play_volume"];
-    this.minVolume = config["min_volume"] || -65.0;
-    this.maxVolume = config["max_volume"] || -10.0;
-    this.gapVolume = this.maxVolume - this.minVolume;
-    this.showInputName = config["show_input_name"] || "no";
+    this.nameSuffix = config.name_suffix || " Party Mode";
+    this.zone = config.zone || 1;
 
-    this.log("Adding Party Switch %s", name);
+    this.log(`Adding Party Switch ${this.name}`);
   }
 
   getServices() {
-    const informationService = new Service.AccessoryInformation();
-    informationService
+    const informationService = new Service.AccessoryInformation()
       .setCharacteristic(Characteristic.Name, this.name)
       .setCharacteristic(Characteristic.Manufacturer, "yamaha-home")
       .setCharacteristic(Characteristic.Model, this.sysConfig.YAMAHA_AV.System[0].Config[0].Model_Name[0])
@@ -32,27 +27,30 @@ class YamahaParty {
 
     const partyService = new Service.Switch(this.name);
     partyService.getCharacteristic(Characteristic.On)
-      .on('get', (callback) => {
-        this.yamaha.isPartyModeEnabled().then((result) => {
-          callback(null, result);
-        });
-      })
-      .on('set', (on, callback) => {
-        if (on) {
-          this.yamaha.powerOn().then(() => {
-            this.yamaha.partyModeOn().then(() => {
-              callback(null, true);
-            });
-          });
-        } else {
-          this.yamaha.partyModeOff().then(() => {
-            callback(null, false);
-          });
-        }
-      });
+      .on('get', this.getPartyModeState.bind(this))
+      .on('set', this.setPartyModeState.bind(this));
 
     return [informationService, partyService];
   }
+
+  getPartyModeState(callback) {
+    this.yamaha.isPartyModeEnabled()
+      .then(result => callback(null, result))
+      .catch(error => callback(error));
+  }
+
+  setPartyModeState(on, callback) {
+    if (on) {
+      this.yamaha.powerOn()
+        .then(() => this.yamaha.partyModeOn())
+        .then(() => callback(null, true))
+        .catch(error => callback(error));
+    } else {
+      this.yamaha.partyModeOff()
+        .then(() => callback(null, false))
+        .catch(error => callback(error));
+    }
+  }
 }
 
-module.exports = YamahaParty;
+module.exports = Party;

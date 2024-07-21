@@ -23,6 +23,7 @@ class AUDIO_RECEIVER {
 		this.minVolume = config.minVolume
 		this.maxVolume = config.maxVolume
 		this.volume = config.volume
+		this.partySwitchEnabled = config.partySwitchEnabled
 		if (!this.volume.name)
 			this.volume.name = `${this.name} Volume`
 

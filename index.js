@@ -3,7 +3,6 @@ const PLUGIN_NAME = 'homebridge-yamaha-receiver'
 const PLATFORM_NAME = 'YamahaReceiver'
 const storage = require('node-persist')
 const path = require('path')
-const YamahaParty = require('./accessories/Party');
 
 module.exports = (api) => {
 	api.registerPlatform(PLUGIN_NAME, PLATFORM_NAME, YamahaReceiver)
@@ -28,8 +27,6 @@ class YamahaReceiver {
 			this.statePollingInterval = 3
 		this.debug = config.debug || false
 		this.persistPath = path.join(this.api.user.persistPath(), '/../yamaha-receiver-persist')
-		this.partySwitch = config.party_switch || false
-
 		
 		// define debug method to output debug logs when enabled in the config
 		this.log.easyDebug = (...content) => {
@@ -45,22 +42,5 @@ class YamahaReceiver {
 
 		this.api.on('didFinishLaunching', AVR.init.bind(this))
 
-	}
-
-	configureAccessory(accessory) {
-		this.log.easyDebug(`Found Cached Accessory: ${accessory.displayName} (${accessory.context.deviceId}) `)
-		// this.accessories.push(accessory)
-	}
-
-	didFinishLaunching() {
-		this.receivers.forEach((receiverConfig) => {
-			const yamaha = new AVR(receiverConfig.ip, this.log, this.debug);
-			yamaha.getSystemConfig().then((sysConfig) => {
-				if (this.partySwitch) {
-					const partyAccessory = new YamahaParty(this.log, receiverConfig, receiverConfig.name, yamaha, sysConfig);
-					this.api.registerPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [partyAccessory]);
-				}
-			});
-		});
 	}
 }
