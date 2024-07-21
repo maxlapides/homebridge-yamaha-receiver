@@ -1,56 +1,78 @@
-let Characteristic, Service;
+let Characteristic, Service
 
-class Party {
-  constructor(avr, platform, config) {
-    Service = platform.api.hap.Service;
-    Characteristic = platform.api.hap.Characteristic;
+class PARTY_SWITCH {
+	constructor(avr, platform, config) {
+		Service = platform.api.hap.Service
+		Characteristic = platform.api.hap.Characteristic
+		
+		this.storage = platform.storage
+		this.avr = avr
+		this.log = platform.log
+		this.api = platform.api
+		this.avrId = config.id
+		this.id = `${config.id}_party_switch`
+		this.name = config.name + ' Party Mode'
+		this.serial = this.id
+		this.model = config.model || 'unknown'
+		this.manufacturer = 'Yamaha'
+		this.displayName = this.name
 
-    this.log = platform.log;
-    this.config = config;
-    this.yamaha = avr;
-    this.sysConfig = avr.sysConfig;
+		this.UUID = this.api.hap.uuid.generate(this.id)
+		this.log.easyDebug(`Creating New PARTY SWITCH Accessory: "${this.name}"`)
+		this.accessory = new this.api.platformAccessory(this.name, this.UUID)
 
-    this.name = "Party Mode";
-    this.nameSuffix = config.name_suffix || " Party Mode";
-    this.zone = config.zone || 1;
+		this.setServices()
+			.then(() => {
+				this.api.publishExternalAccessories(platform.PLUGIN_NAME, [this.accessory])
+			})
+			.catch(err => {
+				this.log('ERROR setting services')
+				this.log(err)
+			})
+	}
 
-    this.log(`Adding Party Switch ${this.name}`);
-  }
+	async setServices() {
+		let informationService = this.accessory.getService(Service.AccessoryInformation)
 
-  getServices() {
-    const informationService = new Service.AccessoryInformation()
-      .setCharacteristic(Characteristic.Name, this.name)
-      .setCharacteristic(Characteristic.Manufacturer, "yamaha-home")
-      .setCharacteristic(Characteristic.Model, this.sysConfig.YAMAHA_AV.System[0].Config[0].Model_Name[0])
-      .setCharacteristic(Characteristic.FirmwareRevision, require('../package.json').version)
-      .setCharacteristic(Characteristic.SerialNumber, this.sysConfig.YAMAHA_AV.System[0].Config[0].System_ID[0]);
+		if (!informationService)
+			informationService = this.accessory.addService(Service.AccessoryInformation)
 
-    const partyService = new Service.Switch(this.name);
-    partyService.getCharacteristic(Characteristic.On)
-      .on('get', this.getPartyModeState.bind(this))
-      .on('set', this.setPartyModeState.bind(this));
+		informationService
+			.setCharacteristic(Characteristic.Manufacturer, this.manufacturer)
+			.setCharacteristic(Characteristic.Model, this.model)
+			.setCharacteristic(Characteristic.SerialNumber, this.serial)
 
-    return [informationService, partyService];
-  }
+		this.partyService = this.accessory.addService(Service.Switch, this.name)
 
-  getPartyModeState(callback) {
-    this.yamaha.isPartyModeEnabled()
-      .then(result => callback(null, result))
-      .catch(error => callback(error));
-  }
+		this.partyService.getCharacteristic(Characteristic.On)
+			.on('get', this.getPartyModeState.bind(this))
+			.on('set', this.setPartyModeState.bind(this))
+	}
 
-  setPartyModeState(on, callback) {
-    if (on) {
-      this.yamaha.powerOn()
-        .then(() => this.yamaha.partyModeOn())
-        .then(() => callback(null, true))
-        .catch(error => callback(error));
-    } else {
-      this.yamaha.partyModeOff()
-        .then(() => callback(null, false))
-        .catch(error => callback(error));
-    }
-  }
+	getPartyModeState(callback) {
+		this.avr.isPartyModeEnabled()
+			.then(result => callback(null, result))
+			.catch(error => callback(error))
+	}
+
+	setPartyModeState(on, callback) {
+		if (on) {
+			this.avr.powerOn()
+				.then(() => this.avr.partyModeOn())
+				.then(() => {
+					this.log(`${this.name} - Party Mode turned ON`)
+					callback(null, true)
+				})
+				.catch(error => callback(error))
+		} else {
+			this.avr.partyModeOff()
+				.then(() => {
+					this.log(`${this.name} - Party Mode turned OFF`)
+					callback(null, false)
+				})
+				.catch(error => callback(error))
+		}
+	}
 }
 
-module.exports = Party;
+module.exports = PARTY_SWITCH
